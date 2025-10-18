@@ -35,7 +35,7 @@
         android:id="@+id/track_info"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="No track playing"
+        android:text="Ready for music learning"
         android:textSize="14sp"
         android:textAlignment="center"
         android:layout_marginHorizontal="16dp"
@@ -50,15 +50,25 @@
         android:layout_height="wrap_content"
         android:text="Add Songs"
         android:layout_marginTop="32dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/libraryButton"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/track_info" />
+
+    <Button
+        android:id="@+id/libraryButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="My Library"
+        android:layout_marginTop="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/addSongsButton"
         app:layout_constraintTop_toBottomOf="@id/track_info" />
 
     <TextView
         android:id="@+id/instructions"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Make sure Spotify is installed and you're logged in.\n\nThis app will connect to Spotify and play some music to test the integration."
+        android:text="Make sure Spotify is installed and you're logged in.\n\nUse 'Add Songs' to build your library, then 'My Library' to practice with flashcards."
         android:textSize="12sp"
         android:textAlignment="center"
         android:layout_marginHorizontal="24dp"

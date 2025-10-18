@@ -71,11 +71,12 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/addButton"
             style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="48dp"
+            android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="8dp"
             android:contentDescription="Add song to library"
+            android:minWidth="48dp"
             app:icon="@android:drawable/ic_input_add"
             app:iconGravity="textStart" />
 

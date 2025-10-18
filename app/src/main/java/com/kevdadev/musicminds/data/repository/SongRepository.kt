@@ -121,4 +121,31 @@ class SongRepository(
             return@withContext null
         }
     }
+    
+    /**
+     * Update learning status of a user's song
+     */
+    suspend fun updateSongLearningStatus(userId: String, songId: String, newStatus: LearningStatus): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val statusChangedAt = java.util.Date()
+            songDao.updateUserSongLearningStatus(userId, songId, newStatus, statusChangedAt)
+            Log.d(TAG, "Successfully updated song learning status to $newStatus for song $songId")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update song learning status", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get category counts for user's songs
+     */
+    suspend fun getCategoryCounts(userId: String): SongDao.CategoryCounts = withContext(Dispatchers.IO) {
+        try {
+            return@withContext songDao.getCategoryCounts(userId) ?: SongDao.CategoryCounts(0, 0, 0)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting category counts", e)
+            return@withContext SongDao.CategoryCounts(0, 0, 0)
+        }
+    }
 }

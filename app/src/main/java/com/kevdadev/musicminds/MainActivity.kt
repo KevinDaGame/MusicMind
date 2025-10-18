@@ -58,6 +58,13 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             
+            // Initialize Library button
+            val libraryButton = findViewById<android.widget.Button>(R.id.libraryButton)
+            libraryButton.setOnClickListener {
+                val intent = Intent(this, com.kevdadev.musicminds.ui.library.LibraryActivity::class.java)
+                startActivity(intent)
+            }
+            
             Log.d(TAG, "UI elements initialized successfully")
             
             // Check authentication status
@@ -269,20 +276,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun connected() {
         spotifyAppRemote?.let {
-            // Play "Never Gonna Give You Up" by Rick Astley
-            val trackURI = "spotify:track:4PTG3Z6ehGkBFwjybzWkR8"
-            it.playerApi.play(trackURI)
-
-            // Subscribe to PlayerState
-            it.playerApi.subscribeToPlayerState().setEventCallback { playerState ->
-                val track: Track = playerState.track
-                val trackInfo = "${track.name} by ${track.artist.name}"
-                Log.d(TAG, trackInfo)
-                
-                // Update UI on main thread
-                runOnUiThread {
-                    trackInfoTextView.text = "Now playing: $trackInfo"
-                }
+            // Connected to Spotify - ready for user interactions
+            Log.d(TAG, "Spotify connection established - ready for user commands")
+            
+            // Update UI to show ready state
+            runOnUiThread {
+                trackInfoTextView.text = "Connected to Spotify - ready to play music!"
             }
         }
     }

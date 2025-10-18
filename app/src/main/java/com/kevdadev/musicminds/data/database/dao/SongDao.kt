@@ -82,4 +82,22 @@ interface SongDao {
         FROM user_songs WHERE user_id = :userId
     """)
     suspend fun getUserStatistics(userId: String): UserStatistics?
+    
+    @Query("UPDATE user_songs SET learning_status = :newStatus, status_changed_at = :statusChangedAt WHERE user_id = :userId AND song_id = :songId")
+    suspend fun updateUserSongLearningStatus(userId: String, songId: String, newStatus: LearningStatus, statusChangedAt: java.util.Date)
+    
+    @Query("""
+        SELECT 
+        SUM(CASE WHEN learning_status = 'TO_LEARN' THEN 1 ELSE 0 END) as toLearnCount,
+        SUM(CASE WHEN learning_status = 'LEARNING' THEN 1 ELSE 0 END) as learningCount,
+        SUM(CASE WHEN learning_status = 'LEARNED' THEN 1 ELSE 0 END) as learnedCount
+        FROM user_songs WHERE user_id = :userId
+    """)
+    suspend fun getCategoryCounts(userId: String): CategoryCounts?
+    
+    data class CategoryCounts(
+        val toLearnCount: Int,
+        val learningCount: Int,
+        val learnedCount: Int
+    )
 }

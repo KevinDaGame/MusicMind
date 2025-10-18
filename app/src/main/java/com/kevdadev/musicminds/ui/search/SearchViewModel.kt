@@ -176,6 +176,10 @@ class SearchViewModel(
         }
     }
     
+    suspend fun isSongInLibrary(song: Song): Boolean {
+        return songRepository.isSongInUserLibrary(song.spotifyId, userId)
+    }
+    
     fun retryLastSearch() {
         val currentQuery = searchQueryFlow.value
         if (currentQuery.isNotBlank()) {

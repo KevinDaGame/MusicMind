@@ -43,6 +43,12 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         
+        <!-- Library Activity -->
+        <activity
+            android:name=".ui.library.LibraryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        
         <!-- Spotify Auth Activity -->
         <activity
             android:name="com.spotify.sdk.android.auth.LoginActivity"

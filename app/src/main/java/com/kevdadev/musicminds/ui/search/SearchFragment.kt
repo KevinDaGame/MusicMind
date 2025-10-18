@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.textfield.TextInputEditText
 import com.kevdadev.musicminds.R
+import com.kevdadev.musicminds.auth.AuthRepository
 import com.kevdadev.musicminds.auth.TokenManager
 import com.kevdadev.musicminds.data.api.SpotifyApiService
 import com.kevdadev.musicminds.data.database.AppDatabase
@@ -70,17 +71,23 @@ class SearchFragment : Fragment() {
         val spotifyApiService = SpotifyApiService(tokenManager)
         val songRepository = SongRepository(database.songDao(), spotifyApiService)
         
-        // TODO: Get actual user ID from authentication system
-        val userId = "default_user" // Placeholder for now
+        // Get actual user ID from authentication system
+        val authRepository = com.kevdadev.musicminds.auth.AuthRepository.getInstance(requireContext())
+        val userId = authRepository.getCurrentUser()?.id ?: "default_user"
         
         val factory = SearchViewModelFactory(songRepository, userId)
         searchViewModel = ViewModelProvider(this, factory)[SearchViewModel::class.java]
     }
     
     private fun setupRecyclerView() {
-        searchResultsAdapter = SearchResultsAdapter { song ->
-            searchViewModel.addSongToLibrary(song)
-        }
+        searchResultsAdapter = SearchResultsAdapter(
+            onAddClick = { song ->
+                searchViewModel.addSongToLibrary(song)
+            },
+            isInLibraryCheck = { song ->
+                searchViewModel.isSongInLibrary(song)
+            }
+        )
         
         searchResultsRecyclerView.apply {
             adapter = searchResultsAdapter

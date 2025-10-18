@@ -11,9 +11,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.kevdadev.musicminds.R
 import com.kevdadev.musicminds.data.database.entities.Song
+import kotlinx.coroutines.launch
 
 class SearchResultsAdapter(
-    private val onAddClick: (Song) -> Unit
+    private val onAddClick: (Song) -> Unit,
+    private val isInLibraryCheck: suspend (Song) -> Boolean
 ) : ListAdapter<Song, SearchResultsAdapter.SearchResultViewHolder>(SongDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchResultViewHolder {
@@ -43,8 +45,33 @@ class SearchResultsAdapter(
             // For now, we'll use a placeholder
             albumArtImageView.setImageResource(R.drawable.ic_music_placeholder)
             
+            // Check if song is already in library and update button accordingly
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                val isInLibrary = isInLibraryCheck(song)
+                updateButtonState(isInLibrary)
+            }
+            
             addButton.setOnClickListener {
-                onAddClick(song)
+                if (addButton.tag != "added") {
+                    onAddClick(song)
+                    updateButtonState(true)
+                }
+            }
+        }
+        
+        private fun updateButtonState(isInLibrary: Boolean) {
+            if (isInLibrary) {
+                addButton.setIconResource(android.R.drawable.ic_menu_info_details)
+                addButton.text = "Added"
+                addButton.isEnabled = false
+                addButton.tag = "added"
+                addButton.alpha = 0.6f
+            } else {
+                addButton.setIconResource(android.R.drawable.ic_input_add)
+                addButton.text = ""
+                addButton.isEnabled = true
+                addButton.tag = null
+                addButton.alpha = 1.0f
             }
         }
     }
