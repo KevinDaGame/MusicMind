@@ -15,12 +15,12 @@ class AuthManager(private val context: Context) {
     }
     
     /**
-     * Creates an authentication request for Spotify authorization
+     * Creates an authentication request for Spotify authorization using CODE flow
      */
     fun createAuthRequest(): AuthorizationRequest {
         return AuthorizationRequest.Builder(
             AuthConstants.CLIENT_ID,
-            AuthorizationResponse.Type.TOKEN,
+            AuthorizationResponse.Type.CODE, // Changed from TOKEN to CODE
             AuthConstants.REDIRECT_URI
         )
             .setScopes(AuthConstants.REQUIRED_SCOPES)
@@ -44,25 +44,16 @@ class AuthManager(private val context: Context) {
     }
     
     /**
-     * Processes the authentication response from Spotify
+     * Processes the authentication response from Spotify (CODE flow)
+     * Returns the authorization code which needs to be exchanged for tokens
      */
-    fun handleAuthResponse(response: AuthorizationResponse?): AuthResult<AuthTokens> {
+    fun handleAuthResponse(response: AuthorizationResponse?): AuthResult<String> {
         return when (response?.type) {
-            AuthorizationResponse.Type.TOKEN -> {
-                Log.d(TAG, "Authentication successful")
-                val accessToken = response.accessToken
-                val expiresIn = response.expiresIn // seconds
-                val expiresAt = System.currentTimeMillis() + (expiresIn * 1000L)
-                
-                val tokens = AuthTokens(
-                    accessToken = accessToken,
-                    refreshToken = null, // TOKEN flow doesn't provide refresh tokens
-                    expiresAt = expiresAt,
-                    scopes = AuthConstants.REQUIRED_SCOPES.toList()
-                )
-                
-                Log.d(TAG, "Token expires at: ${java.util.Date(expiresAt)}")
-                AuthResult.Success(tokens)
+            AuthorizationResponse.Type.CODE -> {
+                Log.d(TAG, "Authorization code received successfully")
+                val authCode = response.code
+                Log.d(TAG, "Authorization code: ${authCode.take(10)}...") // Log only first 10 chars for security
+                AuthResult.Success(authCode)
             }
             
             AuthorizationResponse.Type.ERROR -> {
@@ -113,13 +104,36 @@ class AuthManager(private val context: Context) {
     }
     
     /**
-     * Attempts to refresh the access token
-     * Note: TOKEN flow doesn't provide refresh tokens, so this will return an error
-     * In a production app, you'd use CODE flow to get refresh tokens
+     * Exchanges authorization code for access and refresh tokens using Web API
      */
-    fun refreshToken(tokens: AuthTokens): AuthResult<AuthTokens> {
-        Log.w(TAG, "Token refresh not available with TOKEN flow - re-authentication required")
-        return AuthResult.Error("Token refresh not available - please re-authenticate")
+    suspend fun exchangeCodeForTokens(authCode: String): AuthResult<AuthTokens> {
+        Log.d(TAG, "Exchanging authorization code for tokens")
+        return try {
+            val webApiClient = com.kevdadev.musicminds.auth.api.SpotifyWebApiClient.getInstance()
+            webApiClient.exchangeCodeForTokens(authCode)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during token exchange", e)
+            AuthResult.Error("Token exchange failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Refreshes the access token using the refresh token via Web API
+     */
+    suspend fun refreshToken(tokens: AuthTokens): AuthResult<AuthTokens> {
+        Log.d(TAG, "Refreshing access token using refresh token")
+        return try {
+            if (tokens.refreshToken.isNullOrEmpty()) {
+                Log.e(TAG, "No refresh token available")
+                return AuthResult.Error("No refresh token available - please re-authenticate")
+            }
+            
+            val webApiClient = com.kevdadev.musicminds.auth.api.SpotifyWebApiClient.getInstance()
+            webApiClient.refreshAccessToken(tokens.refreshToken)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during token refresh", e)
+            AuthResult.Error("Token refresh failed: ${e.message}")
+        }
     }
     
     /**

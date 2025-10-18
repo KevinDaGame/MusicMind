@@ -50,6 +50,14 @@ class MainActivity : AppCompatActivity() {
             // Initialize UI elements
             connectionStatusTextView = findViewById(R.id.connection_status)
             trackInfoTextView = findViewById(R.id.track_info)
+            
+            // Initialize Add Songs button
+            val addSongsButton = findViewById<android.widget.Button>(R.id.addSongsButton)
+            addSongsButton.setOnClickListener {
+                val intent = Intent(this, com.kevdadev.musicminds.ui.search.SearchActivity::class.java)
+                startActivity(intent)
+            }
+            
             Log.d(TAG, "UI elements initialized successfully")
             
             // Check authentication status

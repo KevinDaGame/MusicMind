@@ -10,6 +10,10 @@ import com.spotify.sdk.android.auth.AuthorizationResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Repository that manages authentication state and operations
@@ -41,6 +45,9 @@ class AuthRepository(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
     
+    // Coroutine scope for async operations
+    private val authScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    
     init {
         // Check if user is already authenticated on initialization
         checkAuthenticationStatus()
@@ -61,13 +68,24 @@ class AuthRepository(
                 _authState.value = AuthState.Unauthenticated
             }
             !authManager.isTokenValid(tokens) -> {
-                Log.d(TAG, "Stored tokens are expired")
-                _authState.value = AuthState.TokenExpired
+                Log.d(TAG, "Stored tokens are expired, attempting refresh")
+                if (tokens.refreshToken != null) {
+                    _authState.value = AuthState.RefreshingToken
+                    authScope.launch {
+                        refreshTokens(tokens)
+                    }
+                } else {
+                    Log.d(TAG, "No refresh token available, clearing tokens")
+                    tokenManager.clearAllData()
+                    _authState.value = AuthState.Unauthenticated
+                }
             }
             authManager.needsRefresh(tokens) -> {
                 Log.d(TAG, "Tokens need refresh")
                 _authState.value = AuthState.RefreshingToken
-                refreshTokens(tokens)
+                authScope.launch {
+                    refreshTokens(tokens)
+                }
             }
             else -> {
                 Log.d(TAG, "User is authenticated with valid tokens")
@@ -85,39 +103,58 @@ class AuthRepository(
     }
     
     /**
-     * Handles the authentication response from Spotify
+     * Handles the authentication response from Spotify (CODE flow)
      */
-    fun handleAuthResponse(response: AuthorizationResponse?): Boolean {
+    suspend fun handleAuthResponse(response: AuthorizationResponse?): Boolean {
         Log.d(TAG, "Handling authentication response")
         
-        val result = authManager.handleAuthResponse(response)
+        val codeResult = authManager.handleAuthResponse(response)
         
-        return when (result) {
+        return when (codeResult) {
             is AuthResult.Success -> {
-                Log.d(TAG, "Authentication successful, saving tokens")
-                val saved = tokenManager.saveTokens(result.data)
-                if (saved) {
-                    // TODO: Fetch user info from Spotify Web API
-                    // For now, create a basic user object
-                    val userInfo = SpotifyUser(
-                        id = "temp_user_id",
-                        displayName = "Spotify User",
-                        email = null,
-                        profileImageUrl = null,
-                        country = null,
-                        product = null
-                    )
-                    tokenManager.saveUserInfo(userInfo)
-                    _authState.value = AuthState.Authenticated(userInfo)
-                    true
-                } else {
-                    _authState.value = AuthState.AuthError("Failed to save authentication tokens")
-                    false
+                Log.d(TAG, "Authorization code received, exchanging for tokens")
+                _authState.value = AuthState.Authenticating
+                
+                // Exchange authorization code for access and refresh tokens
+                val tokenResult = authManager.exchangeCodeForTokens(codeResult.data)
+                
+                when (tokenResult) {
+                    is AuthResult.Success -> {
+                        Log.d(TAG, "Token exchange successful, saving tokens")
+                        val saved = tokenManager.saveTokens(tokenResult.data)
+                        if (saved) {
+                            // TODO: Fetch user info from Spotify Web API
+                            // For now, create a basic user object
+                            val userInfo = SpotifyUser(
+                                id = "temp_user_id",
+                                displayName = "Spotify User",
+                                email = null,
+                                profileImageUrl = null,
+                                country = null,
+                                product = null
+                            )
+                            tokenManager.saveUserInfo(userInfo)
+                            _authState.value = AuthState.Authenticated(userInfo)
+                            true
+                        } else {
+                            _authState.value = AuthState.AuthError("Failed to save authentication tokens")
+                            false
+                        }
+                    }
+                    is AuthResult.Error -> {
+                        Log.e(TAG, "Token exchange failed: ${tokenResult.message}")
+                        _authState.value = AuthState.AuthError("Token exchange failed: ${tokenResult.message}")
+                        false
+                    }
+                    else -> {
+                        _authState.value = AuthState.AuthError("Unexpected token exchange response")
+                        false
+                    }
                 }
             }
             is AuthResult.Error -> {
-                Log.e(TAG, "Authentication failed: ${result.message}")
-                _authState.value = AuthState.AuthError(result.message)
+                Log.e(TAG, "Authorization failed: ${codeResult.message}")
+                _authState.value = AuthState.AuthError(codeResult.message)
                 false
             }
             is AuthResult.Loading -> {
@@ -128,35 +165,44 @@ class AuthRepository(
     }
     
     /**
-     * Attempts to refresh authentication tokens
+     * Attempts to refresh authentication tokens using refresh token
      */
-    private fun refreshTokens(tokens: AuthTokens) {
+    private suspend fun refreshTokens(tokens: AuthTokens) {
         Log.d(TAG, "Attempting to refresh tokens")
         
-        val result = authManager.refreshToken(tokens)
-        
-        when (result) {
-            is AuthResult.Success -> {
-                val saved = tokenManager.saveTokens(result.data)
-                if (saved) {
-                    val userInfo = tokenManager.getUserInfo()
-                    if (userInfo != null) {
-                        _authState.value = AuthState.Authenticated(userInfo)
+        try {
+            val result = authManager.refreshToken(tokens)
+            
+            when (result) {
+                is AuthResult.Success -> {
+                    Log.d(TAG, "Token refresh successful")
+                    val saved = tokenManager.saveTokens(result.data)
+                    if (saved) {
+                        val userInfo = tokenManager.getUserInfo()
+                        if (userInfo != null) {
+                            _authState.value = AuthState.Authenticated(userInfo)
+                        } else {
+                            _authState.value = AuthState.AuthError("User info not found after refresh")
+                        }
                     } else {
-                        _authState.value = AuthState.AuthError("User info not found after refresh")
+                        _authState.value = AuthState.AuthError("Failed to save refreshed tokens")
                     }
-                } else {
-                    _authState.value = AuthState.AuthError("Failed to save refreshed tokens")
+                }
+                is AuthResult.Error -> {
+                    Log.w(TAG, "Token refresh failed: ${result.message}")
+                    // Clear tokens and require reauthentication
+                    tokenManager.clearAllData()
+                    _authState.value = AuthState.Unauthenticated
+                }
+                else -> {
+                    _authState.value = AuthState.AuthError("Unexpected token refresh response")
                 }
             }
-            is AuthResult.Error -> {
-                Log.w(TAG, "Token refresh failed: ${result.message}")
-                // For TOKEN flow, refresh isn't available, so user needs to re-authenticate
-                _authState.value = AuthState.TokenExpired
-            }
-            else -> {
-                _authState.value = AuthState.AuthError("Unexpected token refresh response")
-            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception during token refresh", e)
+            // Clear tokens and require reauthentication on any exception
+            tokenManager.clearAllData()
+            _authState.value = AuthState.Unauthenticated
         }
     }
     
@@ -201,12 +247,27 @@ class AuthRepository(
     
     /**
      * Gets the current access token if available and valid
+     * Automatically triggers refresh if token is expired and refresh token is available
      */
     fun getValidAccessToken(): String? {
         val tokens = tokenManager.getTokens()
         return if (tokens != null && authManager.isTokenValid(tokens)) {
             tokens.accessToken
+        } else if (tokens != null && !tokens.refreshToken.isNullOrEmpty()) {
+            // Token is expired but we have a refresh token - attempt automatic refresh
+            Log.d(TAG, "Access token expired, attempting automatic refresh")
+            _authState.value = AuthState.RefreshingToken
+            authScope.launch {
+                refreshTokens(tokens)
+            }
+            null // Return null for now, the caller should observe auth state for updates
         } else {
+            // No tokens or no refresh token available - require reauthentication
+            if (tokens != null) {
+                Log.w(TAG, "Access token expired and no refresh token available")
+                tokenManager.clearAllData()
+                _authState.value = AuthState.Unauthenticated
+            }
             null
         }
     }

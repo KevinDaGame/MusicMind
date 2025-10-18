@@ -85,7 +85,14 @@ class AuthActivity : AppCompatActivity() {
                         Log.e(TAG, "Authentication error: ${state.error}")
                     }
                     
-                    is AuthState.TokenExpired, is AuthState.RefreshingToken -> {
+                    is AuthState.TokenExpired -> {
+                        showLoading(false)
+                        statusText.text = "Session expired. Please reconnect to Spotify."
+                        connectButton.isEnabled = true
+                        Log.d(TAG, "Token expired, user needs to reconnect")
+                    }
+                    
+                    is AuthState.RefreshingToken -> {
                         showLoading(true)
                         statusText.text = "Refreshing connection..."
                         Log.d(TAG, "Token refresh in progress")

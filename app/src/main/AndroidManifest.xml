@@ -37,6 +37,12 @@
             android:name=".MainActivity"
             android:exported="false" />
         
+        <!-- Search Activity -->
+        <activity
+            android:name=".ui.search.SearchActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        
         <!-- Spotify Auth Activity -->
         <activity
             android:name="com.spotify.sdk.android.auth.LoginActivity"
