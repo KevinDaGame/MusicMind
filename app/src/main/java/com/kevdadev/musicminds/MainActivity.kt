@@ -65,6 +65,13 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             
+            // Initialize Start Flashcard Session button
+            val startFlashcardButton = findViewById<android.widget.Button>(R.id.startFlashcardButton)
+            startFlashcardButton.setOnClickListener {
+                val intent = Intent(this, com.kevdadev.musicminds.ui.flashcard.FlashcardSessionActivity::class.java)
+                startActivity(intent)
+            }
+            
             Log.d(TAG, "UI elements initialized successfully")
             
             // Check authentication status

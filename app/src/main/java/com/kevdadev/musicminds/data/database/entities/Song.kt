@@ -1,12 +1,15 @@
 package com.kevdadev.musicminds.data.database.entities
 
+import android.os.Parcelable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.parcelize.Parcelize
 import java.util.Date
 import java.util.UUID
 
+@Parcelize
 @Entity(
     tableName = "songs",
     indices = [Index(value = ["spotify_id"], unique = true)]
@@ -48,4 +51,4 @@ data class Song(
     
     @ColumnInfo(name = "date_added")
     val dateAdded: Date = Date()
-)
+) : Parcelable

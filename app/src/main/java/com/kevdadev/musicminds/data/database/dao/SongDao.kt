@@ -87,6 +87,15 @@ interface SongDao {
     suspend fun updateUserSongLearningStatus(userId: String, songId: String, newStatus: LearningStatus, statusChangedAt: java.util.Date)
     
     @Query("""
+        SELECT s.* FROM songs s 
+        JOIN user_songs us ON s.song_id = us.song_id 
+        WHERE us.user_id = :userId AND us.learning_status = :status
+        ORDER BY RANDOM()
+        LIMIT :limit
+    """)
+    suspend fun getRandomSongsByStatus(userId: String, status: LearningStatus, limit: Int): List<Song>
+    
+    @Query("""
         SELECT 
         SUM(CASE WHEN learning_status = 'TO_LEARN' THEN 1 ELSE 0 END) as toLearnCount,
         SUM(CASE WHEN learning_status = 'LEARNING' THEN 1 ELSE 0 END) as learningCount,

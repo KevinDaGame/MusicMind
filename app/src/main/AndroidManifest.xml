@@ -49,6 +49,12 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         
+        <!-- Flashcard Session Activity -->
+        <activity
+            android:name=".ui.flashcard.FlashcardSessionActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        
         <!-- Spotify Auth Activity -->
         <activity
             android:name="com.spotify.sdk.android.auth.LoginActivity"

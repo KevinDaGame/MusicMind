@@ -148,4 +148,16 @@ class SongRepository(
             return@withContext SongDao.CategoryCounts(0, 0, 0)
         }
     }
+    
+    /**
+     * Get random songs by learning status for flashcard sessions
+     */
+    suspend fun getRandomSongsByStatus(userId: String, status: LearningStatus, limit: Int): List<Song> = withContext(Dispatchers.IO) {
+        try {
+            return@withContext songDao.getRandomSongsByStatus(userId, status, limit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting random songs by status", e)
+            return@withContext emptyList()
+        }
+    }
 }
