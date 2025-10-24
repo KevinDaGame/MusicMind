@@ -306,6 +306,42 @@ class FlashcardSessionViewModel(application: Application) : AndroidViewModel(app
     }
     
     /**
+     * Reveal the answer for the current song
+     */
+    fun revealAnswer() {
+        val session = currentSession
+        if (session == null) {
+            Log.e(TAG, "Cannot reveal answer - no session available")
+            _sessionState.value = FlashcardSessionUiState.Error(
+                "No active session found",
+                canRetry = false
+            )
+            return
+        }
+        
+        // Validate session is in progress
+        if (session.sessionState != FlashcardSessionState.IN_PROGRESS) {
+            Log.w(TAG, "Cannot reveal answer - session not in progress")
+            return
+        }
+        
+        // Check if answer is already revealed
+        if (session.answerRevealedForCurrentSong) {
+            Log.w(TAG, "Answer already revealed for current song")
+            return
+        }
+        
+        Log.d(TAG, "Revealing answer for current song: ${session.currentSong?.title}")
+        
+        // Update session to mark answer as revealed
+        val updatedSession = session.copy(answerRevealedForCurrentSong = true)
+        currentSession = updatedSession
+        _sessionState.value = FlashcardSessionUiState.AnswerRevealed(updatedSession)
+        
+        Log.d(TAG, "Answer revealed for song: ${updatedSession.currentSong?.title} by ${updatedSession.currentSong?.artist}")
+    }
+    
+    /**
      * Move to the next song in the session
      */
     fun moveToNextSong() {
@@ -342,8 +378,11 @@ class FlashcardSessionViewModel(application: Application) : AndroidViewModel(app
             
             Log.d(TAG, "Session completed!")
         } else {
-            // Move to next song
-            val updatedSession = session.copy(currentSongIndex = nextIndex)
+            // Move to next song - reset answer revelation for new song
+            val updatedSession = session.copy(
+                currentSongIndex = nextIndex,
+                answerRevealedForCurrentSong = false
+            )
             currentSession = updatedSession
             _sessionState.value = FlashcardSessionUiState.InProgress(updatedSession)
             

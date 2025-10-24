@@ -23,6 +23,11 @@ sealed class FlashcardSessionUiState {
     data class InProgress(val session: FlashcardSession) : FlashcardSessionUiState()
     
     /**
+     * Answer has been revealed for current song
+     */
+    data class AnswerRevealed(val session: FlashcardSession) : FlashcardSessionUiState()
+    
+    /**
      * Session completed
      */
     data class Completed(val session: FlashcardSession) : FlashcardSessionUiState()

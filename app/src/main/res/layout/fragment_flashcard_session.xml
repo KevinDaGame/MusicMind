@@ -91,99 +91,167 @@
                 android:minHeight="60dp"
                 android:gravity="center" />
 
-            <!-- Playback controls section -->
+            <!-- Answer revelation section -->
             <LinearLayout
-                android:id="@+id/playbackControlsSection"
+                android:id="@+id/answerSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <!-- Song metadata -->
-                <TextView
-                    android:id="@+id/currentTrackName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Track Name"
-                    android:textAlignment="center"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                <!-- Album artwork -->
+                <ImageView
+                    android:id="@+id/albumArtwork"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="16dp"
+                    android:background="@android:color/darker_gray"
+                    android:contentDescription="Album artwork"
+                    android:scaleType="centerCrop"
+                    android:src="@android:drawable/ic_menu_gallery" />
 
-                <TextView
-                    android:id="@+id/currentArtistName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Artist Name"
-                    android:textAlignment="center"
-                    android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- Playback progress -->
-                <ProgressBar
-                    android:id="@+id/playbackProgressBar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:max="100"
-                    android:progress="0" />
-
+                <!-- Answer details -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="16dp">
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:background="@android:color/background_light">
 
                     <TextView
-                        android:id="@+id/currentPosition"
-                        android:layout_width="0dp"
+                        android:id="@+id/answerSongTitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="0:00"
-                        android:textSize="12sp" />
+                        android:text="Song Title"
+                        android:textAlignment="center"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@android:color/black"
+                        android:layout_marginBottom="8dp" />
 
                     <TextView
-                        android:id="@+id/totalDuration"
-                        android:layout_width="0dp"
+                        android:id="@+id/answerArtistName"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="0:00"
-                        android:textAlignment="textEnd"
-                        android:textSize="12sp" />
+                        android:text="Artist Name"
+                        android:textAlignment="center"
+                        android:textSize="16sp"
+                        android:textColor="@android:color/darker_gray"
+                        android:layout_marginBottom="8dp" />
 
-                </LinearLayout>
-
-                <!-- Playback buttons -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center">
-
-                    <Button
-                        android:id="@+id/replayButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="48dp"
-                        android:layout_marginEnd="16dp"
-                        android:text="↻ Replay"
+                    <TextView
+                        android:id="@+id/answerReleaseYear"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Release Year"
+                        android:textAlignment="center"
                         android:textSize="14sp"
-                        style="?android:attr/buttonStyleSmall" />
+                        android:textColor="@android:color/darker_gray"
+                        android:layout_marginBottom="8dp" />
 
-                    <Button
-                        android:id="@+id/playPauseButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="48dp"
-                        android:text="▶ Play"
+                    <TextView
+                        android:id="@+id/answerAlbumName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Album Name"
+                        android:textAlignment="center"
                         android:textSize="14sp"
-                        android:minWidth="100dp"
-                        style="?android:attr/buttonStyleSmall" />
+                        android:textStyle="italic"
+                        android:textColor="@android:color/darker_gray" />
 
                 </LinearLayout>
 
             </LinearLayout>
+
+            <!-- Minimalistic playback controls section -->
+            <LinearLayout
+                android:id="@+id/playbackControlsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone">
+
+                <!-- Playback progress bar (takes most space) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="16dp">
+
+                    <ProgressBar
+                        android:id="@+id/playbackProgressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:max="100"
+                        android:progress="0" />
+
+                    <!-- Time display -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/currentPosition"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0:00"
+                            android:textSize="12sp"
+                            android:textColor="@android:color/darker_gray" />
+
+                        <TextView
+                            android:id="@+id/totalDuration"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0:00"
+                            android:textAlignment="textEnd"
+                            android:textSize="12sp"
+                            android:textColor="@android:color/darker_gray" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Play/Pause button (compact, on the right) -->
+                <Button
+                    android:id="@+id/playPauseButton"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:text="▶"
+                    android:textSize="18sp"
+                    android:backgroundTint="#1DB954"
+                    android:textColor="@android:color/white"
+                    style="?android:attr/buttonStyleSmall" />
+
+            </LinearLayout>
+
+            <!-- Hidden elements for compatibility (no song metadata displayed) -->
+            <TextView
+                android:id="@+id/currentTrackName"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/currentArtistName"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/replayButton"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
             <!-- Playback status text -->
             <TextView
@@ -218,6 +286,21 @@
         app:layout_constraintTop_toBottomOf="@id/currentSongCard" />
 
     <Button
+        android:id="@+id/revealAnswerButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="32dp"
+        android:text="Reveal Answer"
+        android:textSize="16sp"
+        android:paddingVertical="12dp"
+        android:backgroundTint="#FFA500"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/startSessionButton" />
+
+    <Button
         android:id="@+id/nextSongButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -229,7 +312,7 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/startSessionButton" />
+        app:layout_constraintTop_toBottomOf="@id/revealAnswerButton" />
 
     <!-- Exit button -->
     <Button

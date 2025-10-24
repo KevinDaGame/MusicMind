@@ -11,7 +11,6 @@
 ## Acceptance Criteria (Given–When–Then)
 - **Given** I have listened to a song clip, **when** I tap "Reveal Answer", **then** the song title, artist name, and release year should be displayed.
 - **Given** I am viewing the revealed answer, **when** I want to see album art, **then** the song's album cover should be visible.
-- **Given** I am viewing the revealed answer, **when** the answer includes interesting trivia about the song or artist, **then** this information should be displayed in a clearly labeled section.
 - **Given** I have viewed the answer, **when** I am ready to continue, **then** I should have a "Next" button to proceed to the next song.
 - **Given** I am viewing an answer, **when** I want to replay the song, **then** I should have an option to play the clip again while viewing the answer.
 - **Given** I am at the last song in the session, **when** I tap "Next" after revealing the answer, **then** I should see a session summary or be returned to the main screen.

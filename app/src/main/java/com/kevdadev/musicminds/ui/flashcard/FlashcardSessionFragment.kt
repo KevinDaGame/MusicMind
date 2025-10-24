@@ -7,11 +7,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
 import com.kevdadev.musicminds.R
 import kotlinx.coroutines.launch
 
@@ -37,6 +41,7 @@ class FlashcardSessionFragment : Fragment() {
     private lateinit var currentSongInfo: TextView
     private lateinit var startSessionButton: Button
     private lateinit var exitSessionButton: Button
+    private lateinit var revealAnswerButton: Button
     private lateinit var nextSongButton: Button
     
     // Playback UI components
@@ -49,6 +54,14 @@ class FlashcardSessionFragment : Fragment() {
     private lateinit var replayButton: Button
     private lateinit var playPauseButton: Button
     private lateinit var playbackStatusText: TextView
+    
+    // Answer revelation UI components
+    private lateinit var answerSection: View
+    private lateinit var albumArtwork: android.widget.ImageView
+    private lateinit var answerSongTitle: TextView
+    private lateinit var answerArtistName: TextView
+    private lateinit var answerReleaseYear: TextView
+    private lateinit var answerAlbumName: TextView
     
     // Loading and error states
     private lateinit var loadingIndicator: ProgressBar
@@ -81,6 +94,7 @@ class FlashcardSessionFragment : Fragment() {
         currentSongInfo = view.findViewById(R.id.currentSongInfo)
         startSessionButton = view.findViewById(R.id.startSessionButton)
         exitSessionButton = view.findViewById(R.id.exitSessionButton)
+        revealAnswerButton = view.findViewById(R.id.revealAnswerButton)
         nextSongButton = view.findViewById(R.id.nextSongButton)
         
         // Playback UI elements
@@ -93,6 +107,14 @@ class FlashcardSessionFragment : Fragment() {
         replayButton = view.findViewById(R.id.replayButton)
         playPauseButton = view.findViewById(R.id.playPauseButton)
         playbackStatusText = view.findViewById(R.id.playbackStatusText)
+        
+        // Answer revelation UI elements
+        answerSection = view.findViewById(R.id.answerSection)
+        albumArtwork = view.findViewById(R.id.albumArtwork)
+        answerSongTitle = view.findViewById(R.id.answerSongTitle)
+        answerArtistName = view.findViewById(R.id.answerArtistName)
+        answerReleaseYear = view.findViewById(R.id.answerReleaseYear)
+        answerAlbumName = view.findViewById(R.id.answerAlbumName)
         
         loadingIndicator = view.findViewById(R.id.loadingIndicator)
         errorText = view.findViewById(R.id.errorText)
@@ -108,6 +130,10 @@ class FlashcardSessionFragment : Fragment() {
             handleExitRequest()
         }
         
+        revealAnswerButton.setOnClickListener {
+            viewModel.revealAnswer()
+        }
+        
         nextSongButton.setOnClickListener {
             viewModel.moveToNextSong()
         }
@@ -121,8 +147,10 @@ class FlashcardSessionFragment : Fragment() {
             viewModel.togglePlayback()
         }
         
-        replayButton.setOnClickListener {
+        // Long press to replay functionality
+        playPauseButton.setOnLongClickListener {
             viewModel.replaySong()
+            true // Consume the long press event
         }
     }
     
@@ -165,6 +193,10 @@ class FlashcardSessionFragment : Fragment() {
                 showInProgress(state)
             }
             
+            is FlashcardSessionUiState.AnswerRevealed -> {
+                showAnswerRevealed(state)
+            }
+            
             is FlashcardSessionUiState.Completed -> {
                 showCompleted(state)
             }
@@ -184,6 +216,7 @@ class FlashcardSessionFragment : Fragment() {
             currentSongInfo to false,
             startSessionButton to false,
             exitSessionButton to false,
+            revealAnswerButton to false,
             nextSongButton to false,
             errorText to false,
             retryButton to false
@@ -195,6 +228,10 @@ class FlashcardSessionFragment : Fragment() {
             visibility = View.VISIBLE
             text = message
         }
+        
+        // Hide answer section and playback controls
+        answerSection.visibility = View.GONE
+        playbackControlsSection.visibility = View.GONE
     }
     
     private fun showReady(state: FlashcardSessionUiState.Ready) {
@@ -206,6 +243,7 @@ class FlashcardSessionFragment : Fragment() {
             sessionStatusText to true,
             startSessionButton to true,
             exitSessionButton to true,
+            revealAnswerButton to false,
             nextSongButton to false,
             currentSongInfo to false,
             errorText to false,
@@ -217,6 +255,10 @@ class FlashcardSessionFragment : Fragment() {
         progressBar.progress = 0
         progressText.text = "Ready to start: ${state.session.totalSongs} songs selected"
         sessionStatusText.text = "Session ready! Tap Start to begin learning."
+        
+        // Hide answer section and playback controls
+        answerSection.visibility = View.GONE
+        playbackControlsSection.visibility = View.GONE
         
         Log.d(TAG, "Session ready with ${state.session.totalSongs} songs")
     }
@@ -231,39 +273,104 @@ class FlashcardSessionFragment : Fragment() {
             currentSongInfo to false, // Hide basic song info, show playback controls instead
             startSessionButton to false,
             exitSessionButton to true,
-            nextSongButton to true,
+            revealAnswerButton to true, // Show reveal answer button during playback
+            nextSongButton to false, // Hide next button until answer is revealed
             errorText to false,
             retryButton to false
         )
         
-        // Show playback controls
+        // Show playback controls, hide answer section
         playbackControlsSection.visibility = View.VISIBLE
         playbackStatusText.visibility = View.VISIBLE
+        answerSection.visibility = View.GONE
         
         // Update progress
         val session = state.session
         progressBar.progress = session.currentSongIndex + 1
         progressText.text = "Song ${session.currentSongIndex + 1} of ${session.totalSongs}"
         
-        // Update current song info
+        // Update current song info (no metadata revealed)
         session.currentSong?.let { song ->
-            sessionStatusText.text = "Listen to the song and try to identify it!"
+            sessionStatusText.text = "🎵 Listen carefully and try to identify this song!"
             
-            // Update song metadata in playback controls
-            currentTrackName.text = "Now Playing..."
-            currentArtistName.text = "Loading track information..."
+            // DO NOT reveal song metadata - keep it hidden
+            currentTrackName.text = "" // Keep empty to prevent leaks
+            currentArtistName.text = "" // Keep empty to prevent leaks
             
             // Initialize playback progress
             playbackProgressBar.progress = 0
             currentPosition.text = "0:00"
             totalDuration.text = "0:00"
             
-            playbackStatusText.text = "Connecting to Spotify for playback..."
+            playbackStatusText.text = "Ready to play • Tap to play/pause • Long press to replay"
         } ?: run {
             sessionStatusText.text = "Error: No song to display"
             playbackControlsSection.visibility = View.GONE
             playbackStatusText.text = "No song available"
         }
+    }
+    
+    private fun showAnswerRevealed(state: FlashcardSessionUiState.AnswerRevealed) {
+        loadingIndicator.visibility = View.GONE
+        
+        setViewsVisibility(
+            progressBar to true,
+            progressText to true,
+            sessionStatusText to true,
+            currentSongInfo to false, // Hide basic song info, show answer section instead
+            startSessionButton to false,
+            exitSessionButton to true,
+            revealAnswerButton to false, // Hide reveal button after revealing
+            nextSongButton to true, // Show next button
+            errorText to false,
+            retryButton to false
+        )
+        
+        // Show playback controls and answer section
+        playbackControlsSection.visibility = View.VISIBLE
+        playbackStatusText.visibility = View.VISIBLE
+        answerSection.visibility = View.VISIBLE
+        
+        // Update progress
+        val session = state.session
+        progressBar.progress = session.currentSongIndex + 1
+        progressText.text = "Song ${session.currentSongIndex + 1} of ${session.totalSongs}"
+        
+        // Update session status
+        sessionStatusText.text = "Answer revealed! Ready for the next song?"
+        
+        // Display answer information
+        session.currentSong?.let { song ->
+            answerSongTitle.text = song.title
+            answerArtistName.text = song.artist
+            answerReleaseYear.text = "Released: ${song.releaseYear}"
+            answerAlbumName.text = song.album
+            
+            // Load album artwork with Glide
+            if (!song.imageUrl.isNullOrBlank()) {
+                Glide.with(this)
+                    .load(song.imageUrl)
+                    .apply(RequestOptions().transform(RoundedCorners(16)))
+                    .placeholder(R.drawable.ic_launcher_foreground) // Use app icon as placeholder
+                    .error(android.R.drawable.ic_menu_gallery) // Default image on error
+                    .into(albumArtwork)
+            } else {
+                // Use default image if no artwork URL
+                albumArtwork.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
+            
+            Log.d(TAG, "Answer revealed for: ${song.title} by ${song.artist} (${song.releaseYear})")
+        } ?: run {
+            answerSongTitle.text = "Unknown Song"
+            answerArtistName.text = "Unknown Artist"
+            answerReleaseYear.text = "Unknown Year"
+            answerAlbumName.text = "Unknown Album"
+            albumArtwork.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+        
+        // Update next button text based on if this is the last song
+        val isLastSong = session.currentSongIndex >= session.totalSongs - 1
+        nextSongButton.text = if (isLastSong) "Finish Session" else "Next Song"
     }
     
     private fun updatePlaybackUI(playbackState: FlashcardSessionViewModel.PlaybackUiState) {
@@ -273,35 +380,36 @@ class FlashcardSessionFragment : Fragment() {
             is FlashcardSessionViewModel.PlaybackUiState.Disconnected -> {
                 playbackStatusText.text = "Connecting to Spotify..."
                 playPauseButton.isEnabled = false
-                playPauseButton.text = "Play"
-                replayButton.isEnabled = false
-                currentTrackName.text = "Not connected"
-                currentArtistName.text = "Please wait..."
+                playPauseButton.text = "▶"
                 playbackProgressBar.progress = 0
                 currentPosition.text = "0:00"
                 totalDuration.text = "0:00"
+                
+                // Do NOT reveal song information
+                currentTrackName.text = ""
+                currentArtistName.text = ""
             }
             
             is FlashcardSessionViewModel.PlaybackUiState.Connected -> {
-                playbackStatusText.text = "Connected to Spotify - Ready to play"
+                playbackStatusText.text = "Ready to play • Tap to play • Long press to replay"
                 playPauseButton.isEnabled = true
-                playPauseButton.text = "Play"
-                replayButton.isEnabled = true
-                currentTrackName.text = "Ready to play"
-                currentArtistName.text = "Select a song to start"
+                playPauseButton.text = "▶"
+                
+                // Do NOT reveal song information
+                currentTrackName.text = ""
+                currentArtistName.text = ""
             }
             
             is FlashcardSessionViewModel.PlaybackUiState.Playing -> {
-                playbackStatusText.text = if (playbackState.isPaused) "Paused" else "Playing"
+                playbackStatusText.text = if (playbackState.isPaused) "⏸ Paused" else "🎵 Playing"
                 playPauseButton.isEnabled = true
-                replayButton.isEnabled = true
                 
                 // Update button text based on playback state
-                playPauseButton.text = if (playbackState.isPaused) "Play" else "Pause"
+                playPauseButton.text = if (playbackState.isPaused) "▶" else "⏸"
                 
-                // Update track information
-                currentTrackName.text = playbackState.trackName
-                currentArtistName.text = playbackState.artistName
+                // DO NOT reveal track information during playback - keep it hidden
+                currentTrackName.text = ""
+                currentArtistName.text = ""
                 
                 // Update progress
                 val progressPercent = if (playbackState.duration > 0) {
@@ -319,8 +427,7 @@ class FlashcardSessionFragment : Fragment() {
             is FlashcardSessionViewModel.PlaybackUiState.Error -> {
                 playbackStatusText.text = "Playback error: ${playbackState.message}"
                 playPauseButton.isEnabled = false
-                playPauseButton.text = "Play"
-                replayButton.isEnabled = false
+                playPauseButton.text = "▶"
             }
         }
     }
@@ -341,6 +448,7 @@ class FlashcardSessionFragment : Fragment() {
             currentSongInfo to true,
             startSessionButton to false,
             exitSessionButton to true,
+            revealAnswerButton to false,
             nextSongButton to false,
             errorText to false,
             retryButton to false
@@ -349,8 +457,23 @@ class FlashcardSessionFragment : Fragment() {
         val session = state.session
         progressBar.progress = session.totalSongs
         progressText.text = "Session Complete!"
-        sessionStatusText.text = "Great job! You completed ${session.totalSongs} songs."
-        currentSongInfo.text = "Session finished successfully."
+        
+        // Create a comprehensive session summary
+        val sessionDuration = if (session.startedAt != null && session.completedAt != null) {
+            val duration = session.completedAt.time - session.startedAt.time
+            val minutes = duration / (1000 * 60)
+            " in ${minutes} minutes"
+        } else {
+            ""
+        }
+        
+        sessionStatusText.text = "🎉 Congratulations! 🎉"
+        currentSongInfo.text = "You completed all ${session.totalSongs} songs${sessionDuration}!\n\n" +
+                "Thanks for practicing with MusicMinds. Your musical knowledge is growing!"
+        
+        // Hide answer section and playback controls in completed state
+        answerSection.visibility = View.GONE
+        playbackControlsSection.visibility = View.GONE
         
         // Update exit button text
         exitSessionButton.text = "Return to Main"
@@ -366,6 +489,7 @@ class FlashcardSessionFragment : Fragment() {
             currentSongInfo to false,
             startSessionButton to false,
             exitSessionButton to true,
+            revealAnswerButton to false,
             nextSongButton to false,
             errorText to true,
             retryButton to state.canRetry
@@ -373,6 +497,10 @@ class FlashcardSessionFragment : Fragment() {
         
         sessionStatusText.text = if (state.canRetry) "Session Error" else "Cannot Start Session"
         errorText.text = state.message
+        
+        // Hide answer section and playback controls in error state
+        answerSection.visibility = View.GONE
+        playbackControlsSection.visibility = View.GONE
         
         // Update exit button text based on error type
         exitSessionButton.text = if (state.canRetry) "Exit" else "Back to Main"

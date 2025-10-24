@@ -20,7 +20,8 @@ data class FlashcardSession(
     val completedAt: Date? = null,
     val totalSongs: Int = songQueue.size,
     val correctAnswers: Int = 0,
-    val sessionConfig: SessionConfig = SessionConfig()
+    val sessionConfig: SessionConfig = SessionConfig(),
+    val answerRevealedForCurrentSong: Boolean = false
 ) : Parcelable {
     val currentSong: Song?
         get() = if (currentSongIndex < songQueue.size) songQueue[currentSongIndex] else null
